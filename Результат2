@@ -1,0 +1,179 @@
+import sys
+from random import shuffle  # Нужно для перемешивания ответов
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, 
+                             QGroupBox, QRadioButton, QPushButton, QLabel, QButtonGroup)
+
+# ======================================================
+# ОБЩАЯ ЧАСТЬ: подключаем инструменты
+# ======================================================
+app = QApplication([])  # создаём приложение (всегда первым)
+
+# --------- ОБЩАЯ ЧАСТЬ: вопрос и кнопка ---------
+btn_OK = QPushButton('Ответить')                     # кнопка
+lb_Question = QLabel('Самый сложный вопрос в мире!') # текст вопроса
+
+# Три строки окна. Пока они пустые.
+layout_line1 = QHBoxLayout()  # строка 1: вопрос
+layout_line2 = QHBoxLayout()  # строка 2: варианты ИЛИ результат (её заполните вы)
+layout_line3 = QHBoxLayout()  # строка 3: кнопка
+
+# Строка 1: вопрос по центру
+layout_line1.addWidget(lb_Question, alignment=(Qt.AlignHCenter | Qt.AlignVCenter))
+
+# Строка 3: кнопка по центру. addStretch(1) = пустое место по бокам.
+layout_line3.addStretch(1)
+layout_line3.addWidget(btn_OK, stretch=2)  # stretch=2: кнопка шире
+layout_line3.addStretch(1)
+
+# ======================================================
+# ЗАДАНИЕ УЧЕНИКА А: ФОРМА ВОПРОСА
+# ======================================================
+# Шаг 1. Создайте виджеты:
+RadioGroupBox = QGroupBox('Варианты ответов') # рамка
+rbtn_1 = QRadioButton('Вариант 1')            # переключатели
+rbtn_2 = QRadioButton('Вариант 2')
+rbtn_3 = QRadioButton('Вариант 3')
+rbtn_4 = QRadioButton('Вариант 4')
+
+# ВАЖНО: Группируем кнопки, чтобы они знали друг о друге (только одна активна)
+RadioGroup = QButtonGroup()
+RadioGroup.addButton(rbtn_1)
+RadioGroup.addButton(rbtn_2)
+RadioGroup.addButton(rbtn_3)
+RadioGroup.addButton(rbtn_4)
+
+# Шаг 2. Создайте три лэйаута:
+layout_ans1 = QHBoxLayout() # главный, столбцы стоят В РЯД (горизонтальный)
+layout_ans2 = QVBoxLayout() # левый столбец (вертикальный)
+layout_ans3 = QVBoxLayout() # правый столбец (вертикальный)
+
+# Шаг 3. Разложите переключатели:
+layout_ans2.addWidget(rbtn_1)
+layout_ans2.addWidget(rbtn_2)
+layout_ans3.addWidget(rbtn_3)
+layout_ans3.addWidget(rbtn_4)
+
+# Шаг 4. Вложите лэйауты:
+layout_ans1.addLayout(layout_ans2)
+layout_ans1.addLayout(layout_ans3)
+
+# Шаг 5. Положите layout_ans1 в рамку RadioGroupBox.
+RadioGroupBox.setLayout(layout_ans1)
+
+# Шаг 6. Положите рамку RadioGroupBox в строку layout_line2.
+layout_line2.addWidget(RadioGroupBox)
+
+# ======================================================
+# ЗАДАНИЕ УЧЕНИКА Б: ФОРМА ОТВЕТА
+# ======================================================
+# Шаг 1. Создайте виджеты:
+AnsGroupBox = QGroupBox('Результат теста') # рамка
+lb_Result = QLabel('прав ты или нет?')     # надпись
+lb_Correct = QLabel('ответ будет тут!')    # надпись
+
+# Шаг 2. Создайте лэйаут layout_res (вертикальный, друг под другом)
+layout_res = QVBoxLayout()
+
+# Шаг 3. Добавьте надписи в layout_res с выравниванием:
+# - lb_Result: прижать ВЛЕВО и ВВЕРХ
+layout_res.addWidget(lb_Result, alignment=(Qt.AlignLeft | Qt.AlignTop))
+# - lb_Correct: по центру по горизонтали, и дать ему больше места
+layout_res.addWidget(lb_Correct, alignment=Qt.AlignHCenter, stretch=2)
+
+# Шаг 4. Положите layout_res в рамку AnsGroupBox.
+AnsGroupBox.setLayout(layout_res)
+
+# Шаг 5. Положите рамку AnsGroupBox в строку layout_line2.
+layout_line2.addWidget(AnsGroupBox)
+
+# ======================================================
+# ЗАДАНИЕ 2 (для обоих): Переключение экранов
+# ======================================================
+# 1. Прячем одну рамку при запуске (чтобы они не наложились друг на друга)
+AnsGroupBox.hide()
+
+# 2. Функция для показа РЕЗУЛЬТАТА
+def show_result():
+    ''' показать панель ответов '''
+    RadioGroupBox.hide()               # Прячем вопросы
+    AnsGroupBox.show()                 # Показываем ответы
+    btn_OK.setText('Следующий вопрос') # Меняем текст на кнопке
+
+# 3. Функция для показа ВОПРОСА
+def show_question():
+    ''' показать панель вопросов '''
+    RadioGroupBox.show()               # Показываем вопросы
+    AnsGroupBox.hide()                 # Прячем ответы
+    btn_OK.setText('Ответить')         # Меняем текст на кнопке
+    
+    # Хитрый трюк, чтобы сбросить выбор радиокнопок (подробно в методичке)
+    RadioGroup.setExclusive(False)     # Временно "разбиваем" группу
+    rbtn_1.setChecked(False)           # Снимаем галочки со всех кнопок
+    rbtn_2.setChecked(False)
+    rbtn_3.setChecked(False)
+    rbtn_4.setChecked(False)
+    RadioGroup.setExclusive(True)      # Снова "собираем" группу
+
+# ======================================================
+# НОВАЯ ЧАСТЬ: ЛОГИКА ПРОВЕРКИ И ПЕРЕМЕШИВАНИЯ
+# ======================================================
+# Создаем список из наших 4 кнопок. Программа будет их перемешивать.
+answers = [rbtn_1, rbtn_2, rbtn_3, rbtn_4]
+
+def ask(question, right_answer, wrong1, wrong2, wrong3):
+    '''Функция задает вопрос и распределяет варианты'''
+    # ВАЖНО: Сначала мы всегда записываем ПРАВИЛЬНЫЙ ответ в первую кнопку (answers[0]).
+    answers[0].setText(right_answer)
+    answers[1].setText(wrong1)
+    answers[2].setText(wrong2)
+    answers[3].setText(wrong3)
+    
+    # МАГИЯ: перемешиваем список кнопок. Кнопки поменяются местами на экране. 
+    # Но программа запомнила, что answers[0] - правильная!
+    shuffle(answers) 
+    
+    # Записываем текст вопроса наверх, а правильный ответ — в скрытую панель
+    lb_Question.setText(question)
+    lb_Correct.setText(right_answer)
+    
+    # Показываем экран с вопросом
+    show_question()
+
+def check_answer():
+    '''Функция проверяет, какая кнопка нажата, и показывает результат'''
+    # Если выбрана нулевая кнопка в нашем списке (та, куда записали правильный ответ)
+    if answers[0].isChecked():
+        lb_Result.setText('Правильно!') 
+    # Если выбрана любая другая кнопка
+    elif answers[1].isChecked() or answers[2].isChecked() or answers[3].isChecked():
+        lb_Result.setText('Неправильно!')
+    
+    # В любом случае показываем экран с результатом
+    show_result()
+
+# Привязываем нажатие на кнопку к функции проверки
+btn_OK.clicked.connect(check_answer)
+
+# Запускаем самый первый вопрос программы!
+ask('Государственный язык Бразилии', 'Португальский', 'Бразильский', 'Испанский', 'Итальянский')
+
+# ======================================================
+# ОБЩАЯ ЧАСТЬ: собираем окно (не менять)
+# ======================================================
+layout_card = QVBoxLayout()  # главная полка: строки друг под другом
+
+layout_card.addLayout(layout_line1, stretch=2)  # вопрос: 2 части места
+layout_card.addLayout(layout_line2, stretch=8)  # варианты/результат: 8 частей
+layout_card.addStretch(1)                       # пустое место
+layout_card.addLayout(layout_line3, stretch=1)  # кнопка: 1 часть
+layout_card.addStretch(1)                       # пустое место
+layout_card.setSpacing(5)                       # расстояние между строками
+
+window = QWidget()                              # создаём окно
+window.setLayout(layout_card)                   # кладём главную полку в окно
+window.setWindowTitle('Memory Card')            # заголовок окна
+window.resize(400, 300)                         # задаем размер окна
+window.show()                                   # показываем окно
+
+app.exec_()  # запуск. Без этой строки окно сразу закроется

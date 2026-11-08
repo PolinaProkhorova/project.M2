@@ -1,0 +1,31 @@
+# Добавляем импорт в самый верх файла: from random import shuffle
+
+# Собираем кнопки в список
+answers = [rbtn_1, rbtn_2, rbtn_3, rbtn_4]
+
+def ask(question, right_answer, wrong1, wrong2, wrong3):
+    '''Записывает текст в кнопки и мешает их'''
+    answers[0].setText(right_answer)
+    answers[1].setText(wrong1)
+    answers[2].setText(wrong2)
+    answers[3].setText(wrong3)
+    
+    shuffle(answers) # МЕШАЕМ КНОПКИ (рандом)
+    
+    lb_Question.setText(question)
+    lb_Correct.setText(right_answer)
+    show_question()
+
+def check_answer():
+    '''Проверяет клик по кнопке'''
+    if answers[0].isChecked():
+        lb_Result.setText('Правильно!')
+    elif answers[1].isChecked() or answers[2].isChecked() or answers[3].isChecked():
+        lb_Result.setText('Неправильно!')
+    show_result()
+
+# Вместо btn_OK.clicked.connect(test) пишем:
+btn_OK.clicked.connect(check_answer)
+
+# Задаем первый вопрос (вызываем функцию ask)
+ask('Государственный язык Бразилии', 'Португальский', 'Бразильский', 'Испанский', 'Итальянский')
